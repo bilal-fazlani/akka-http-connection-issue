@@ -1,9 +1,16 @@
 package com.bilal
 
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+
+import akka.NotUsed
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.server.StandardRoute
 import akka.stream.ActorMaterializer
-
+import akka.stream.scaladsl.Source
+import akka.http.scaladsl.marshalling.sse.EventStreamMarshalling._
+import scala.concurrent.duration.DurationLong
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.{Failure, Success}
@@ -19,7 +26,13 @@ object TargetServers extends App {
 
   val bindingF = Future.sequence(bindingFutures)
 
-  def makeRoute(name: String): StandardRoute = complete(s"OK from $name")
+  private def makeRoute(name: String) = complete(
+    Source
+    .tick(0.seconds, 2.seconds, NotUsed)
+    .map(_ => name)
+    .map(ServerSentEvent(_))
+    .takeWithin(10.seconds)
+  )
 
   bindingF.onComplete {
     case Failure(exception) => exception.printStackTrace()
