@@ -1,18 +1,22 @@
 package com.bilal
 
-import scala.concurrent.Future
+import akka.http.scaladsl.model.Uri
 
 object LocationServiceMock {
 
-  case class Location(name: String, host:String, port:Int)
-
-  private lazy val data: Map[String, Location] = (1 to 100)
-    .map(i => s"service$i" -> Location(s"service$i", "localhost", 8080 + i))
+  private lazy val data: Map[String, Location] = (1 to 1000)
+    .map(
+      i =>
+        s"service$i" -> Location(
+          s"service$i",
+          Uri(s"http://localhost:${8000 + i}")
+      )
+    )
     .toMap
 
-  def resolve(serviceName:String):Future[Option[Location]] = {
-    Future.successful(data.get(serviceName))
-  }
+  def resolve(serviceName: String): Option[Uri] = data.get(serviceName).map(_.uri)
 
   def list: Seq[Location] = data.values.toSeq
+
+  case class Location(name: String, uri: Uri)
 }

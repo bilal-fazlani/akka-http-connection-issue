@@ -1,24 +1,20 @@
 package com.bilal
 
-import akka.http.scaladsl.model.{HttpResponse, StatusCodes}
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpResponse, StatusCodes, Uri}
 import akka.http.scaladsl.server.HttpApp
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 
 object Proxy extends HttpApp with App {
 
-  override val routes = extractRequest { request =>
-    path(Segment) { serviceName =>
-      val response = LocationServiceMock
-        .resolve(serviceName)
-        .flatMap {
-          case Some(target) => request.forwardTo(target)
-          case None => Future.successful(HttpResponse(StatusCodes.NotFound))
-        }
-      complete(response)
+  override val routes = path(Segment) { serviceName =>
+    LocationServiceMock.resolve(serviceName) match {
+      case Some(target) => forwardTo(target)
+      case None         => complete(HttpResponse(StatusCodes.NotFound))
     }
   }
 
-  this.startServer("0.0.0.0", 9000)
+  def forwardTo(uri: Uri) =
+    extractRequest(req => complete(Http().singleRequest(req.copy(uri = uri))))
+
+  this.startServer("0.0.0.0", 5000)
 }
