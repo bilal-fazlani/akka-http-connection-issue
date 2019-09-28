@@ -1,12 +1,7 @@
 package com.bilal
 
-import akka.NotUsed
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.sse.ServerSentEvent
 import akka.http.scaladsl.model.{HttpRequest, Uri}
-import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.http.scaladsl.unmarshalling.sse.EventStreamUnmarshalling._
-import akka.stream.scaladsl.{Sink, Source}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -16,17 +11,15 @@ object Clients extends App {
 
   val startTime = System.nanoTime()
   val futures = LocationServiceMock.list
-    .take(50)
+    .take(150)
     .map(_.name)
     .map(name => {
-      val streamStartTime = System.nanoTime()
+      incStart()
       Http()
         .singleRequest(HttpRequest(uri = Uri(s"http://localhost:5000/$name")))
-        .flatMap(Unmarshal(_).to[Source[ServerSentEvent, NotUsed]])
-        .flatMap(x => x.runWith(Sink.ignore))
+        .map(x=>x.entity.discardBytes(mat))
         .map(d => {
-          val streamEndTime = System.nanoTime()
-          println(s"$name -> ${(streamEndTime - streamStartTime) /1000000000L }s")
+          incEnd()
           d
         })
     })
@@ -36,8 +29,10 @@ object Clients extends App {
   f.onComplete {
     case Failure(exception) =>
       exception.printStackTrace()
-    case Success(value) =>
+    case Success(_) =>
       val endTime = System.nanoTime()
+      Thread.sleep(100)
+      println()
       println("done")
       println(s"total time: ${(endTime - startTime) / 1000000000L}s")
   }

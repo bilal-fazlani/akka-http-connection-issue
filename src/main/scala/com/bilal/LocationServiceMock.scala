@@ -4,7 +4,7 @@ import akka.http.scaladsl.model.Uri
 
 object LocationServiceMock {
 
-  private lazy val data: Map[String, Location] = (1 to 1000)
+  private lazy val data: Map[String, Location] = (1 to 200)
     .map(
       i =>
         s"service$i" -> Location(
