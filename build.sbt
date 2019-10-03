@@ -1,4 +1,4 @@
-name := "tmtProxy"
+name := "httpProxy"
 
 version := "0.1"
 
